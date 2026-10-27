@@ -83,7 +83,7 @@ const Auth = {
         
         const username = document.getElementById('username').value.trim();
         const password = document.getElementById('password').value;
-        const m3uUrl = document.getElementById('m3u-url').value.trim();
+        const m3uInput = document.getElementById('m3u-url').value.trim();
         const errorElement = document.getElementById('login-error');
 
         // Clear error
@@ -91,48 +91,59 @@ const Auth = {
             errorElement.textContent = '';
         }
 
-        // Validate
-        if (!username || !password) {
-            this.showError('Por favor ingrese usuario y contraseña');
+        // Validate M3U input (required)
+        if (!m3uInput) {
+            this.showError('Por favor ingrese la URL o nombre del servicio IPTV');
             return;
         }
 
         // Show loading
         this.showLoading();
 
-        // Simulate API call delay
-        setTimeout(() => {
-            // Check test users
-            const user = this.testUsers[username];
-            
-            if (user && user.password === password) {
-                // Successful login
-                this.loginSuccess(username, user.name, m3uUrl);
-            } else {
-                // Failed login
-                this.showError('Usuario o contraseña incorrectos');
-                this.hideLoading();
-            }
-        }, 1000);
+        // If username and password are provided, check them
+        if (username && password) {
+            setTimeout(() => {
+                const user = this.testUsers[username];
+                
+                if (user && user.password === password) {
+                    this.loginSuccess(username, user.name, m3uInput);
+                } else {
+                    // Even if auth fails, try to load the IPTV service
+                    this.showError('Usuario o contraseña incorrectos, pero intentando cargar IPTV...');
+                    this.loginSuccess('guest', 'Invitado', m3uInput);
+                }
+            }, 1000);
+        } else {
+            // No auth, just load IPTV with guest user
+            this.loginSuccess('guest', 'Invitado', m3uInput);
+        }
     },
 
     // Login success
-    loginSuccess(username, displayName, m3uUrl) {
+    loginSuccess(username, displayName, m3uInput) {
         // Create session
         const session = {
             username: username,
             displayName: displayName,
             timestamp: Date.now(),
             token: this.generateToken(username),
-            m3uUrl: m3uUrl
+            m3uUrl: m3uInput
         };
 
         // Save session
         this.saveSession(session);
 
-        // Save M3U URL if provided
-        if (m3uUrl) {
-            localStorage.setItem('iptv_m3u_url', m3uUrl);
+        // Process M3U input
+        let m3uUrl = m3uInput;
+        if (m3uInput) {
+            // Try to resolve the URL if it's a service name
+            if (!m3uInput.startsWith('http://') && !m3uInput.startsWith('https://')) {
+                m3uUrl = this.tryKnownIPTVServices(m3uInput);
+            }
+            
+            if (m3uUrl) {
+                localStorage.setItem('iptv_m3u_url', m3uUrl);
+            }
         }
 
         // Hide login, show app
@@ -148,17 +159,36 @@ const Auth = {
             if (m3uUrl) {
                 // Load M3U from URL
                 IPTVPlayer.loadM3UFromURL(m3uUrl).then(success => {
+                    this.hideLoading();
                     if (success) {
-                        this.hideLoading();
                         if (typeof App !== 'undefined') {
                             App.initContent();
                         }
-                        this.showToast(`¡Bienvenido, ${displayName}! Lista M3U cargada.`);
+                        this.showToast(`¡Bienvenido, ${displayName}! Lista IPTV cargada.`);
                     } else {
-                        this.hideLoading();
-                        this.showToast(`¡Bienvenido, ${displayName}! Usando lista por defecto.`);
-                        if (typeof App !== 'undefined') {
-                            App.initContent();
+                        // Try with default lala.tv URL
+                        if (m3uInput.toLowerCase().includes('lala')) {
+                            IPTVPlayer.loadM3UFromURL('https://lala.tv/get.php').then(success2 => {
+                                this.hideLoading();
+                                if (success2) {
+                                    if (typeof App !== 'undefined') {
+                                        App.initContent();
+                                    }
+                                    this.showToast(`¡Bienvenido, ${displayName}! Lista lala.tv cargada.`);
+                                } else {
+                                    this.hideLoading();
+                                    this.showToast(`¡Bienvenido, ${displayName}! Usando lista por defecto.`);
+                                    if (typeof App !== 'undefined') {
+                                        App.initContent();
+                                    }
+                                }
+                            });
+                        } else {
+                            this.hideLoading();
+                            this.showToast(`¡Bienvenido, ${displayName}! Usando lista por defecto.`);
+                            if (typeof App !== 'undefined') {
+                                App.initContent();
+                            }
                         }
                     }
                 });
@@ -189,28 +219,78 @@ const Auth = {
     handleLoadM3U() {
         const urlInput = document.getElementById('new-m3u-url');
         if (urlInput) {
-            const url = urlInput.value.trim();
-            if (url) {
+            const input = urlInput.value.trim();
+            if (input) {
                 this.showLoading();
                 
-                if (typeof IPTVPlayer !== 'undefined') {
-                    IPTVPlayer.loadM3UFromURL(url).then(success => {
-                        this.hideLoading();
-                        if (success) {
-                            this.showToast('Lista M3U cargada correctamente');
-                            urlInput.value = '';
-                            if (typeof App !== 'undefined') {
-                                App.initContent();
+                // Check if it's a known IPTV service
+                let url = input;
+                
+                // If it's just "lala.tv" or similar, try to construct the URL
+                if (!input.startsWith('http://') && !input.startsWith('https://')) {
+                    // Try common IPTV service formats
+                    url = this.tryKnownIPTVServices(input);
+                }
+                
+                if (url) {
+                    if (typeof IPTVPlayer !== 'undefined') {
+                        IPTVPlayer.loadM3UFromURL(url).then(success => {
+                            this.hideLoading();
+                            if (success) {
+                                this.showToast('Lista IPTV cargada correctamente');
+                                urlInput.value = '';
+                                if (typeof App !== 'undefined') {
+                                    App.initContent();
+                                }
+                            } else {
+                                this.showError('Error al cargar la lista. Verifica la URL.');
                             }
-                        } else {
-                            this.showError('Error al cargar la lista M3U');
-                        }
-                    });
+                        });
+                    }
+                } else {
+                    this.hideLoading();
+                    this.showError('Formato no reconocido. Usa una URL completa (https://...)');
                 }
             } else {
-                this.showError('Por favor ingrese una URL válida');
+                this.showError('Por favor ingrese una URL o nombre de servicio');
             }
         }
+    },
+
+    // Try known IPTV services
+    tryKnownIPTVServices(input) {
+        const service = input.toLowerCase().trim();
+        
+        // Known IPTV services
+        const services = {
+            'lala.tv': 'https://lala.tv/get.php',
+            'lalatv': 'https://lala.tv/get.php',
+            'lala': 'https://lala.tv/get.php',
+            'fuevana': 'https://fuevana.tv/get.php',
+            'iptv-provider': 'https://iptv-provider.com/get.php',
+            'xuper': 'https://xuper.tv/get.php'
+        };
+        
+        // Check if it's a known service
+        if (services[service]) {
+            return services[service];
+        }
+        
+        // Try common patterns
+        if (service.includes('.tv')) {
+            return `https://${service}/get.php`;
+        }
+        
+        if (service.includes('.com')) {
+            return `https://${service}/get.php`;
+        }
+        
+        // If it looks like a domain, try with https
+        if (service.includes('.')) {
+            return `https://${service}/get.php`;
+        }
+        
+        return null;
     },
 
     // Handle load default

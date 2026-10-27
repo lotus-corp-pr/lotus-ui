@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lotus IPTV - Web Player</title>
+    <title>Lotus IPTV - Reproductor Web</title>
     <link rel="stylesheet" href="css/styles.css">
-    <!-- HLS.js para streaming HLS -->
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 </head>
 <body>
@@ -14,23 +13,24 @@
         <div class="login-container">
             <div class="logo">
                 <h1>LOTUS IPTV</h1>
-                <p>Reproductor Web para lala.tv</p>
+                <p>Reproductor Web para lala.tv y otros servicios IPTV</p>
             </div>
             
             <form id="login-form" class="login-form">
                 <div class="form-group">
-                    <label for="username">Usuario</label>
-                    <input type="text" id="username" name="username" placeholder="Ingrese su usuario" required>
+                    <label for="username">Usuario (Opcional)</label>
+                    <input type="text" id="username" name="username" placeholder="Ingrese su usuario">
                 </div>
                 
                 <div class="form-group">
-                    <label for="password">Contraseña</label>
-                    <input type="password" id="password" name="password" placeholder="Ingrese su contraseña" required>
+                    <label for="password">Contraseña (Opcional)</label>
+                    <input type="password" id="password" name="password" placeholder="Ingrese su contraseña">
                 </div>
                 
                 <div class="form-group">
-                    <label for="m3u-url">URL de Lista M3U (Opcional)</label>
-                    <input type="url" id="m3u-url" name="m3u-url" placeholder="https://tudominio.com/lista.m3u">
+                    <label for="m3u-url">URL o Nombre del Servicio IPTV *</label>
+                    <input type="text" id="m3u-url" name="m3u-url" placeholder="lala.tv" required>
+                    <p class="hint">Ejemplos: <strong>lala.tv</strong>, fuevana.tv, o https://tudominio.com/lista.m3u</p>
                 </div>
                 
                 <button type="submit" class="btn-login">INICIAR SESIÓN</button>
@@ -39,9 +39,9 @@
             </form>
             
             <div class="test-credentials">
-                <h3>Usuarios de Prueba:</h3>
-                <p>Usuario: demo / Contraseña: demo</p>
-                <p>Usuario: iptv / Contraseña: iptv123</p>
+                <h3>Acceso Rápido:</h3>
+                <p>Solo escribe <strong>lala.tv</strong> y haz clic en Iniciar Sesión</p>
+                <p>O usa: demo / demo</p>
             </div>
         </div>
     </div>
@@ -110,13 +110,13 @@
                 <h2>Configuración</h2>
                 <div class="settings-container">
                     <div class="setting-group">
-                        <h3>Lista M3U</h3>
+                        <h3>Lista IPTV</h3>
                         <p>URL actual: <span id="current-m3u-url" class="url-display">No configurado</span></p>
                         <div class="form-group">
-                            <label for="new-m3u-url">Nueva URL de Lista M3U</label>
-                            <input type="url" id="new-m3u-url" placeholder="https://tudominio.com/lista.m3u">
+                            <label for="new-m3u-url">Nueva URL o Servicio</label>
+                            <input type="text" id="new-m3u-url" placeholder="lala.tv o https://tudominio.com/lista.m3u">
                         </div>
-                        <button id="btn-load-m3u" class="btn-save">Cargar Lista M3U</button>
+                        <button id="btn-load-m3u" class="btn-save">Cargar Lista IPTV</button>
                         <button id="btn-load-default" class="btn-secondary">Cargar Lista de Prueba</button>
                     </div>
                     
@@ -187,22 +187,11 @@
             </div>
         </div>
 
-        <!-- Channel Guide Modal -->
-        <div id="guide-modal" class="modal hidden">
-            <div class="modal-content guide-content">
-                <div class="guide-header">
-                    <h2>Guía de Programación</h2>
-                    <button class="btn-close" id="btn-close-guide">&times;</button>
-                </div>
-                <div id="guide-grid"></div>
-            </div>
-        </div>
-
         <!-- Loading Spinner -->
         <div id="loading-spinner" class="spinner hidden">
             <div class="spinner-content">
                 <div class="spinner-circle"></div>
-                <p id="loading-text">Cargando...</p>
+                <p id="loading-text">Cargando canales...</p>
             </div>
         </div>
 

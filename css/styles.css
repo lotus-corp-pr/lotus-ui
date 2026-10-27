@@ -123,6 +123,13 @@ html, body {
     color: #666;
 }
 
+.hint {
+    font-size: 0.8rem;
+    color: #666;
+    margin-top: 5px;
+    font-style: italic;
+}
+
 .btn-login {
     width: 100%;
     padding: 15px 20px;

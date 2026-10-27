@@ -270,15 +270,70 @@ http://example.com/stream/disney.m3u8`,
         this.saveChannels();
     },
 
+    // Try to load from known IPTV services
+    async tryLoadFromKnownServices(serviceName) {
+        const service = serviceName.toLowerCase().trim();
+        
+        // Common IPTV service URLs
+        const serviceUrls = {
+            'lala.tv': ['https://lala.tv/get.php', 'https://lala.tv/playlist.m3u'],
+            'lalatv': ['https://lala.tv/get.php', 'https://lala.tv/playlist.m3u'],
+            'lala': ['https://lala.tv/get.php', 'https://lala.tv/playlist.m3u'],
+            'fuevana': ['https://fuevana.tv/get.php'],
+            'xuper': ['https://xuper.tv/get.php']
+        };
+        
+        if (serviceUrls[service]) {
+            for (const url of serviceUrls[service]) {
+                try {
+                    const success = await this.loadM3UFromURL(url);
+                    if (success) {
+                        return true;
+                    }
+                } catch (error) {
+                    console.log(`Failed to load from ${url}:`, error);
+                }
+            }
+        }
+        
+        return false;
+    },
+
     // Load M3U from URL
     async loadM3UFromURL(url) {
         if (!url) return false;
 
         try {
-            const response = await fetch(url);
+            // Add headers for IPTV services
+            const headers = {
+                'User-Agent': 'LotusIPTV/1.0 (Mozilla/5.0 compatible)',
+                'Accept': '*/*',
+                'Connection': 'keep-alive'
+            };
+            
+            const response = await fetch(url, { headers });
+            
             if (!response.ok) {
+                // Try with different headers for lala.tv
+                if (url.includes('lala.tv')) {
+                    const lalaHeaders = {
+                        'User-Agent': 'FuevanaIPTV/1.0',
+                        'Referer': 'https://fuevana.tv/',
+                        'Accept': 'application/vnd.apple.mpegurl'
+                    };
+                    const lalaResponse = await fetch(url, { headers: lalaHeaders });
+                    if (lalaResponse.ok) {
+                        const m3uContent = await lalaResponse.text();
+                        this.channels = this.parseM3U(m3uContent);
+                        this.extractCategories();
+                        this.saveChannels();
+                        this.saveM3UUrl(url);
+                        return true;
+                    }
+                }
                 throw new Error('Failed to fetch M3U');
             }
+            
             const m3uContent = await response.text();
             this.channels = this.parseM3U(m3uContent);
             this.extractCategories();
@@ -287,8 +342,95 @@ http://example.com/stream/disney.m3u8`,
             return true;
         } catch (error) {
             console.error('Error loading M3U:', error);
+            
+            // If it's lala.tv, try alternative approach
+            if (url.includes('lala.tv')) {
+                // Try with CORS proxy for lala.tv
+                try {
+                    const proxyUrl = `https://cors-anywhere.herokuapp.com/${url}`;
+                    const proxyResponse = await fetch(proxyUrl);
+                    if (proxyResponse.ok) {
+                        const m3uContent = await proxyResponse.text();
+                        this.channels = this.parseM3U(m3uContent);
+                        this.extractCategories();
+                        this.saveChannels();
+                        this.saveM3UUrl(url);
+                        return true;
+                    }
+                } catch (proxyError) {
+                    console.log('Proxy failed, trying direct fetch without headers');
+                }
+                
+                // Try direct fetch without headers
+                try {
+                    const directResponse = await fetch(url);
+                    if (directResponse.ok) {
+                        const m3uContent = await directResponse.text();
+                        this.channels = this.parseM3U(m3uContent);
+                        this.extractCategories();
+                        this.saveChannels();
+                        this.saveM3UUrl(url);
+                        return true;
+                    }
+                } catch (directError) {
+                    console.error('Direct fetch also failed:', directError);
+                }
+            }
+            
             return false;
         }
+    },
+
+    // Load M3U from service name (like lala.tv)
+    async loadFromServiceName(serviceName) {
+        const service = serviceName.toLowerCase().trim();
+        
+        // Known service URLs
+        const serviceConfigs = {
+            'lala.tv': {
+                urls: [
+                    'https://lala.tv/get.php',
+                    'https://lala.tv/playlist.m3u',
+                    'https://lala.tv/live.m3u'
+                ],
+                headers: {
+                    'User-Agent': 'FuevanaIPTV/1.0',
+                    'Referer': 'https://fuevana.tv/'
+                }
+            },
+            'lalatv': {
+                urls: [
+                    'https://lala.tv/get.php',
+                    'https://lala.tv/playlist.m3u'
+                ],
+                headers: {
+                    'User-Agent': 'FuevanaIPTV/1.0'
+                }
+            }
+        };
+        
+        const config = serviceConfigs[service];
+        if (config) {
+            for (const url of config.urls) {
+                try {
+                    const response = await fetch(url, {
+                        headers: config.headers
+                    });
+                    if (response.ok) {
+                        const m3uContent = await response.text();
+                        this.channels = this.parseM3U(m3uContent);
+                        this.extractCategories();
+                        this.saveChannels();
+                        this.saveM3UUrl(url);
+                        return true;
+                    }
+                } catch (error) {
+                    console.log(`Failed to load ${url}:`, error);
+                }
+            }
+        }
+        
+        return false;
     },
 
     // Save M3U URL
