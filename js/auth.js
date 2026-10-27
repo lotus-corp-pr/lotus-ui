@@ -1,17 +1,17 @@
-// Xuper TV Web - Authentication Module
+// Lotus IPTV - Authentication Module
 
 const Auth = {
     // Storage keys
     STORAGE_KEY: {
-        USER: 'xuper_tv_user',
-        TOKEN: 'xuper_tv_token',
-        SESSION: 'xuper_tv_session'
+        USER: 'lotus_iptv_user',
+        TOKEN: 'lotus_iptv_token',
+        SESSION: 'lotus_iptv_session'
     },
 
     // Test users (for demo purposes)
     testUsers: {
         demo: { password: 'demo', name: 'Demo User' },
-        user1: { password: 'password', name: 'Regular User' },
+        iptv: { password: 'iptv123', name: 'IPTV User' },
         admin: { password: 'admin123', name: 'Administrator' }
     },
 
@@ -21,7 +21,12 @@ const Auth = {
         const user = this.getUser();
         if (user) {
             this.showApp();
-            App.updateUserInfo(user);
+            if (typeof App !== 'undefined') {
+                App.updateUserInfo(user);
+            }
+            if (typeof IPTVPlayer !== 'undefined') {
+                IPTVPlayer.loadChannels();
+            }
         } else {
             this.showLogin();
         }
@@ -37,6 +42,39 @@ const Auth = {
         if (logoutBtn) {
             logoutBtn.addEventListener('click', () => this.handleLogout());
         }
+
+        // Setup M3U load button
+        const loadM3UBtn = document.getElementById('btn-load-m3u');
+        if (loadM3UBtn) {
+            loadM3UBtn.addEventListener('click', () => this.handleLoadM3U());
+        }
+
+        // Setup default list button
+        const loadDefaultBtn = document.getElementById('btn-load-default');
+        if (loadDefaultBtn) {
+            loadDefaultBtn.addEventListener('click', () => this.handleLoadDefault());
+        }
+
+        // Setup settings checkboxes
+        const autoplayCheckbox = document.getElementById('autoplay-next');
+        if (autoplayCheckbox) {
+            autoplayCheckbox.addEventListener('change', () => {
+                if (typeof IPTVPlayer !== 'undefined') {
+                    IPTVPlayer.autoplayNext = autoplayCheckbox.checked;
+                    IPTVPlayer.saveSettings();
+                }
+            });
+        }
+
+        const epgCheckbox = document.getElementById('show-epg');
+        if (epgCheckbox) {
+            epgCheckbox.addEventListener('change', () => {
+                if (typeof IPTVPlayer !== 'undefined') {
+                    IPTVPlayer.showEPG = epgCheckbox.checked;
+                    IPTVPlayer.saveSettings();
+                }
+            });
+        }
     },
 
     // Handle login
@@ -45,6 +83,7 @@ const Auth = {
         
         const username = document.getElementById('username').value.trim();
         const password = document.getElementById('password').value;
+        const m3uUrl = document.getElementById('m3u-url').value.trim();
         const errorElement = document.getElementById('login-error');
 
         // Clear error
@@ -68,7 +107,7 @@ const Auth = {
             
             if (user && user.password === password) {
                 // Successful login
-                this.loginSuccess(username, user.name);
+                this.loginSuccess(username, user.name, m3uUrl);
             } else {
                 // Failed login
                 this.showError('Usuario o contraseña incorrectos');
@@ -78,32 +117,60 @@ const Auth = {
     },
 
     // Login success
-    loginSuccess(username, displayName) {
+    loginSuccess(username, displayName, m3uUrl) {
         // Create session
         const session = {
             username: username,
             displayName: displayName,
             timestamp: Date.now(),
-            token: this.generateToken(username)
+            token: this.generateToken(username),
+            m3uUrl: m3uUrl
         };
 
         // Save session
         this.saveSession(session);
 
+        // Save M3U URL if provided
+        if (m3uUrl) {
+            localStorage.setItem('iptv_m3u_url', m3uUrl);
+        }
+
         // Hide login, show app
         this.showApp();
         
         // Update user info
-        App.updateUserInfo(session);
+        if (typeof App !== 'undefined') {
+            App.updateUserInfo(session);
+        }
         
-        // Initialize app content
-        App.initContent();
-        
-        // Hide loading
-        this.hideLoading();
-
-        // Show success message
-        this.showToast(`¡Bienvenido, ${displayName}!`);
+        // Initialize IPTV player with M3U if provided
+        if (typeof IPTVPlayer !== 'undefined') {
+            if (m3uUrl) {
+                // Load M3U from URL
+                IPTVPlayer.loadM3UFromURL(m3uUrl).then(success => {
+                    if (success) {
+                        this.hideLoading();
+                        if (typeof App !== 'undefined') {
+                            App.initContent();
+                        }
+                        this.showToast(`¡Bienvenido, ${displayName}! Lista M3U cargada.`);
+                    } else {
+                        this.hideLoading();
+                        this.showToast(`¡Bienvenido, ${displayName}! Usando lista por defecto.`);
+                        if (typeof App !== 'undefined') {
+                            App.initContent();
+                        }
+                    }
+                });
+            } else {
+                // Use default channels
+                this.hideLoading();
+                if (typeof App !== 'undefined') {
+                    App.initContent();
+                }
+                this.showToast(`¡Bienvenido, ${displayName}!`);
+            }
+        }
     },
 
     // Handle logout
@@ -118,22 +185,58 @@ const Auth = {
         this.showToast('Sesión cerrada');
     },
 
+    // Handle load M3U
+    handleLoadM3U() {
+        const urlInput = document.getElementById('new-m3u-url');
+        if (urlInput) {
+            const url = urlInput.value.trim();
+            if (url) {
+                this.showLoading();
+                
+                if (typeof IPTVPlayer !== 'undefined') {
+                    IPTVPlayer.loadM3UFromURL(url).then(success => {
+                        this.hideLoading();
+                        if (success) {
+                            this.showToast('Lista M3U cargada correctamente');
+                            urlInput.value = '';
+                            if (typeof App !== 'undefined') {
+                                App.initContent();
+                            }
+                        } else {
+                            this.showError('Error al cargar la lista M3U');
+                        }
+                    });
+                }
+            } else {
+                this.showError('Por favor ingrese una URL válida');
+            }
+        }
+    },
+
+    // Handle load default
+    handleLoadDefault() {
+        if (typeof IPTVPlayer !== 'undefined') {
+            IPTVPlayer.loadDefaultChannels();
+            this.showToast('Lista por defecto cargada');
+            if (typeof App !== 'undefined') {
+                App.initContent();
+            }
+        }
+    },
+
     // Generate a simple token
     generateToken(username) {
-        // In a real implementation, this would be a JWT or server-generated token
-        // For demo purposes, we use a simple hash
         const timestamp = Date.now().toString();
         const data = `${username}:${timestamp}`;
         
-        // Simple hash function
         let hash = 0;
         for (let i = 0; i < data.length; i++) {
             const char = data.charCodeAt(i);
             hash = ((hash << 5) - hash) + char;
-            hash = hash & hash; // Convert to 32bit integer
+            hash = hash & hash;
         }
         
-        return `xuper_token_${hash.toString(16)}_${username}`;
+        return `lotus_token_${hash.toString(16)}_${username}`;
     },
 
     // Save session

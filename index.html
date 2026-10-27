@@ -3,16 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Xuper TV - Web Version</title>
+    <title>Lotus IPTV - Web Player</title>
     <link rel="stylesheet" href="css/styles.css">
+    <!-- HLS.js para streaming HLS -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 </head>
 <body>
     <!-- Login Screen -->
     <div id="login-screen" class="screen">
         <div class="login-container">
             <div class="logo">
-                <h1>XUPER TV</h1>
-                <p>Android TV Web Edition</p>
+                <h1>LOTUS IPTV</h1>
+                <p>Reproductor Web para lala.tv</p>
             </div>
             
             <form id="login-form" class="login-form">
@@ -26,6 +28,11 @@
                     <input type="password" id="password" name="password" placeholder="Ingrese su contraseña" required>
                 </div>
                 
+                <div class="form-group">
+                    <label for="m3u-url">URL de Lista M3U (Opcional)</label>
+                    <input type="url" id="m3u-url" name="m3u-url" placeholder="https://tudominio.com/lista.m3u">
+                </div>
+                
                 <button type="submit" class="btn-login">INICIAR SESIÓN</button>
                 
                 <div class="error-message" id="login-error"></div>
@@ -34,8 +41,7 @@
             <div class="test-credentials">
                 <h3>Usuarios de Prueba:</h3>
                 <p>Usuario: demo / Contraseña: demo</p>
-                <p>Usuario: user1 / Contraseña: password</p>
-                <p>Usuario: admin / Contraseña: admin123</p>
+                <p>Usuario: iptv / Contraseña: iptv123</p>
             </div>
         </div>
     </div>
@@ -45,11 +51,11 @@
         <!-- Header -->
         <header class="header">
             <div class="header-left">
-                <button class="btn-header" data-tab="home">INICIO</button>
+                <button class="btn-header" data-tab="channels">CANALES</button>
                 <button class="btn-header" data-tab="categories">CATEGORÍAS</button>
-                <button class="btn-header" data-tab="search">BUSCAR</button>
                 <button class="btn-header" data-tab="favorites">FAVORITOS</button>
-                <button class="btn-header" data-tab="history">HISTORIAL</button>
+                <button class="btn-header" data-tab="search">BUSCAR</button>
+                <button class="btn-header" data-tab="settings">CONFIGURACIÓN</button>
             </div>
             
             <div class="header-right">
@@ -60,10 +66,20 @@
 
         <!-- Main Content -->
         <main class="main-content">
-            <!-- Home Tab -->
-            <section id="tab-home" class="tab-content active">
-                <h2>Contenido Destacado</h2>
-                <div class="content-grid" id="featured-content"></div>
+            <!-- Channels Tab -->
+            <section id="tab-channels" class="tab-content active">
+                <div class="channels-header">
+                    <h2>Canales en Vivo</h2>
+                    <div class="channel-filter">
+                        <button class="btn-filter active" data-filter="all">Todos</button>
+                        <button class="btn-filter" data-filter="tv">TV</button>
+                        <button class="btn-filter" data-filter="movies">Películas</button>
+                        <button class="btn-filter" data-filter="series">Series</button>
+                        <button class="btn-filter" data-filter="sports">Deportes</button>
+                        <button class="btn-filter" data-filter="news">Noticias</button>
+                    </div>
+                </div>
+                <div class="channels-grid" id="channels-grid"></div>
             </section>
 
             <!-- Categories Tab -->
@@ -74,32 +90,58 @@
 
             <!-- Search Tab -->
             <section id="tab-search" class="tab-content">
-                <h2>Buscar</h2>
+                <h2>Buscar Canales</h2>
                 <div class="search-container">
-                    <input type="text" id="search-input" placeholder="Buscar películas, series o canales..." class="search-input">
+                    <input type="text" id="search-input" placeholder="Buscar canales, películas o series..." class="search-input">
                     <button id="btn-search" class="btn-search">BUSCAR</button>
                 </div>
                 
                 <div class="search-results" id="search-results"></div>
-                
-                <!-- Google Search Integration -->
-                <div class="google-search-container hidden" id="google-search-container">
-                    <h3>Resultados de Búsqueda en Google</h3>
-                    <iframe id="google-iframe" class="google-iframe" src="about:blank"></iframe>
-                    <button id="btn-close-google" class="btn-close">Cerrar Búsqueda en Google</button>
-                </div>
             </section>
 
             <!-- Favorites Tab -->
             <section id="tab-favorites" class="tab-content">
                 <h2>Mis Favoritos</h2>
-                <div class="content-grid" id="favorites-content"></div>
+                <div class="channels-grid" id="favorites-grid"></div>
             </section>
 
-            <!-- History Tab -->
-            <section id="tab-history" class="tab-content">
-                <h2>Historial</h2>
-                <div class="content-grid" id="history-content"></div>
+            <!-- Settings Tab -->
+            <section id="tab-settings" class="tab-content">
+                <h2>Configuración</h2>
+                <div class="settings-container">
+                    <div class="setting-group">
+                        <h3>Lista M3U</h3>
+                        <p>URL actual: <span id="current-m3u-url" class="url-display">No configurado</span></p>
+                        <div class="form-group">
+                            <label for="new-m3u-url">Nueva URL de Lista M3U</label>
+                            <input type="url" id="new-m3u-url" placeholder="https://tudominio.com/lista.m3u">
+                        </div>
+                        <button id="btn-load-m3u" class="btn-save">Cargar Lista M3U</button>
+                        <button id="btn-load-default" class="btn-secondary">Cargar Lista de Prueba</button>
+                    </div>
+                    
+                    <div class="setting-group">
+                        <h3>Reproductor</h3>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="autoplay-next" checked>
+                            <span>Reproducir siguiente canal automáticamente</span>
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="show-epg" checked>
+                            <span>Mostrar guía de programación (EPG)</span>
+                        </label>
+                    </div>
+                    
+                    <div class="setting-group">
+                        <h3>Calidad de Video</h3>
+                        <select id="video-quality">
+                            <option value="auto">Auto</option>
+                            <option value="1080p">1080p</option>
+                            <option value="720p">720p</option>
+                            <option value="480p">480p</option>
+                        </select>
+                    </div>
+                </div>
             </section>
         </main>
 
@@ -107,18 +149,52 @@
         <div id="player-modal" class="modal hidden">
             <div class="modal-content">
                 <div class="player-header">
-                    <h2 id="player-title">Título del Video</h2>
-                    <button class="btn-close" id="btn-close-player">&times;</button>
+                    <div class="player-info-left">
+                        <h2 id="player-title">Canal</h2>
+                        <p id="player-channel-info"></p>
+                    </div>
+                    <div class="player-controls-header">
+                        <button class="btn-control" id="btn-fullscreen" title="Pantalla completa">⛶</button>
+                        <button class="btn-control" id="btn-close-player" title="Cerrar">&times;</button>
+                    </div>
                 </div>
                 
                 <div class="player-container">
-                    <video id="video-player" class="video-player" controls>
-                        <source src="" type="video/mp4">
+                    <video id="video-player" class="video-player" controls autoplay>
+                        <source src="" type="application/x-mpegURL">
                         Tu navegador no soporta el elemento de video.
                     </video>
                 </div>
                 
-                <div class="player-info" id="player-info"></div>
+                <div class="player-footer">
+                    <div class="player-progress">
+                        <div class="progress-bar" id="progress-bar"></div>
+                        <span id="current-time">00:00</span> / <span id="duration">00:00</span>
+                    </div>
+                    <div class="player-controls">
+                        <button class="btn-control" id="btn-play-pause" title="Reproducir/Pausar">▶</button>
+                        <button class="btn-control" id="btn-prev" title="Anterior">⏮</button>
+                        <button class="btn-control" id="btn-next" title="Siguiente">⏭</button>
+                        <button class="btn-control" id="btn-volume" title="Volumen">🔊</button>
+                        <input type="range" id="volume-slider" min="0" max="1" step="0.1" value="1">
+                    </div>
+                </div>
+                
+                <div class="epg-info" id="epg-info">
+                    <h4>Programación</h4>
+                    <div id="epg-content"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Channel Guide Modal -->
+        <div id="guide-modal" class="modal hidden">
+            <div class="modal-content guide-content">
+                <div class="guide-header">
+                    <h2>Guía de Programación</h2>
+                    <button class="btn-close" id="btn-close-guide">&times;</button>
+                </div>
+                <div id="guide-grid"></div>
             </div>
         </div>
 
@@ -126,7 +202,7 @@
         <div id="loading-spinner" class="spinner hidden">
             <div class="spinner-content">
                 <div class="spinner-circle"></div>
-                <p>Cargando...</p>
+                <p id="loading-text">Cargando...</p>
             </div>
         </div>
 
@@ -135,7 +211,7 @@
     </div>
 
     <script src="js/auth.js"></script>
+    <script src="js/iptv-player.js"></script>
     <script src="js/app.js"></script>
-    <script src="js/player.js"></script>
 </body>
 </html>
