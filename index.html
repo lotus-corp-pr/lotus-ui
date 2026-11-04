@@ -1,206 +1,132 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lotus IPTV - Reproductor Web</title>
-    <link rel="stylesheet" href="css/styles.css">
-    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#07090d">
+<title>VAULT — Private storage</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='13' fill='none' stroke='%23ff456f' stroke-width='2'/%3E%3Ctext x='16' y='22' font-size='16' text-anchor='middle' fill='%23ff456f'%3E%E2%8C%91%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-    <!-- Login Screen -->
-    <div id="login-screen" class="screen">
-        <div class="login-container">
-            <div class="logo">
-                <h1>LOTUS IPTV</h1>
-                <p>Reproductor Web para lala.tv y otros servicios IPTV</p>
-            </div>
-            
-            <form id="login-form" class="login-form">
-                <div class="form-group">
-                    <label for="username">Usuario (Opcional)</label>
-                    <input type="text" id="username" name="username" placeholder="Ingrese su usuario">
-                </div>
-                
-                <div class="form-group">
-                    <label for="password">Contraseña (Opcional)</label>
-                    <input type="password" id="password" name="password" placeholder="Ingrese su contraseña">
-                </div>
-                
-                <div class="form-group">
-                    <label for="m3u-url">URL o Nombre del Servicio IPTV *</label>
-                    <input type="text" id="m3u-url" name="m3u-url" placeholder="lala.tv" required>
-                    <p class="hint">Ejemplos: <strong>lala.tv</strong>, fuevana.tv, o https://tudominio.com/lista.m3u</p>
-                </div>
-                
-                <button type="submit" class="btn-login">INICIAR SESIÓN</button>
-                
-                <div class="error-message" id="login-error"></div>
-            </form>
-            
-            <div class="test-credentials">
-                <h3>Acceso Rápido:</h3>
-                <p>Solo escribe <strong>lala.tv</strong> y haz clic en Iniciar Sesión</p>
-                <p>O usa: demo / demo</p>
-            </div>
-        </div>
+
+<div id="lock">
+  <div class="lock-panel" id="lockPanel">
+    <div class="lock-mark">⌑</div>
+    <h1 class="lock-title">VAULT<span style="color:var(--pink)">.</span></h1>
+    <p class="lock-sub" id="lockSub">ENTER PATTERN</p>
+    <div class="keys" id="keys"></div>
+    <div class="dots" id="dots"></div>
+    <p class="lock-msg" id="lockMsg"></p>
+    <div class="lock-actions">
+      <button type="button" class="btn" id="lockClear">CLEAR</button>
+      <button type="button" class="btn primary" id="lockEnter">ENTER</button>
     </div>
+    <div class="lock-hint"><button type="button" id="lockReset">RESET PATTERN</button></div>
+  </div>
+</div>
 
-    <!-- Main App -->
-    <div id="app" class="screen hidden">
-        <!-- Header -->
-        <header class="header">
-            <div class="header-left">
-                <button class="btn-header" data-tab="channels">CANALES</button>
-                <button class="btn-header" data-tab="categories">CATEGORÍAS</button>
-                <button class="btn-header" data-tab="favorites">FAVORITOS</button>
-                <button class="btn-header" data-tab="search">BUSCAR</button>
-                <button class="btn-header" data-tab="settings">CONFIGURACIÓN</button>
-            </div>
-            
-            <div class="header-right">
-                <button class="btn-header" id="btn-logout">CERRAR SESIÓN</button>
-                <span class="user-info" id="user-info"></span>
-            </div>
-        </header>
+<div class="shell">
+<header class="top">
+  <div class="brand"><div class="mark">⌑</div><div><h1>VAULT<span style="color:var(--pink)">.</span></h1><div class="micro">PERSONAL DATA CONTAINER / V.03</div></div></div>
+  <div class="status"><i class="dot"></i><span id="statusTxt">SYSTEM ONLINE · LOCAL</span></div>
+</header>
+<main>
+<div class="eyebrow" style="margin-top:26px">PRIVATE STORAGE INTERFACE</div>
+<h2>YOUR SPACE. <span style="color:var(--cyan)">SEALED.</span></h2>
+<div class="sub">PRIVATE NOTES + YOUR PHOTOS &amp; VIDEOS ON GOOGLE DRIVE — PLAYABLE.</div>
 
-        <!-- Main Content -->
-        <main class="main-content">
-            <!-- Channels Tab -->
-            <section id="tab-channels" class="tab-content active">
-                <div class="channels-header">
-                    <h2>Canales en Vivo</h2>
-                    <div class="channel-filter">
-                        <button class="btn-filter active" data-filter="all">Todos</button>
-                        <button class="btn-filter" data-filter="tv">TV</button>
-                        <button class="btn-filter" data-filter="movies">Películas</button>
-                        <button class="btn-filter" data-filter="series">Series</button>
-                        <button class="btn-filter" data-filter="sports">Deportes</button>
-                        <button class="btn-filter" data-filter="news">Noticias</button>
-                    </div>
-                </div>
-                <div class="channels-grid" id="channels-grid"></div>
-            </section>
+<section class="stats">
+  <div class="stat"><div class="eyebrow">VAULT STATUS</div><div class="ring">ON</div><div class="num" style="font-size:18px;color:var(--green)" id="vaultState">LOCAL MODE</div></div>
+  <div class="stat"><div class="eyebrow">TOTAL ITEMS</div><div class="num" id="total">00</div></div>
+  <div class="stat"><div class="eyebrow">NOTES</div><div class="num" id="notesCount">00</div></div>
+  <div class="stat"><div class="eyebrow">DRIVE STORAGE</div><div class="num" id="storage">— <small>KB</small></div></div>
+</section>
 
-            <!-- Categories Tab -->
-            <section id="tab-categories" class="tab-content">
-                <h2>Categorías</h2>
-                <div class="category-list" id="category-list"></div>
-            </section>
+<div class="actions">
+  <button type="button" class="btn primary" id="addNote">＋ ADD NOTE</button>
+  <button type="button" class="btn" id="uploadBtn">▲ UPLOAD PHOTO / VIDEO</button>
+  <button type="button" class="btn" id="syncBtn">⟳ SYNC DRIVE</button>
+  <button type="button" class="btn" id="setupBtn">⚙ SETUP</button>
+  <button type="button" class="btn" id="lockBtn">LOCK</button>
+</div>
 
-            <!-- Search Tab -->
-            <section id="tab-search" class="tab-content">
-                <h2>Buscar Canales</h2>
-                <div class="search-container">
-                    <input type="text" id="search-input" placeholder="Buscar canales, películas o series..." class="search-input">
-                    <button id="btn-search" class="btn-search">BUSCAR</button>
-                </div>
-                
-                <div class="search-results" id="search-results"></div>
-            </section>
+<div class="section-head"><h3>ALL ITEMS <span style="color:var(--pink)">/ 03</span></h3><input class="search" id="search" placeholder="⌕ SEARCH ITEMS"></div>
 
-            <!-- Favorites Tab -->
-            <section id="tab-favorites" class="tab-content">
-                <h2>Mis Favoritos</h2>
-                <div class="channels-grid" id="favorites-grid"></div>
-            </section>
+<div class="content">
+  <section class="slot">
+    <div class="slot-head"><span class="eyebrow">01 — PRIVATE NOTES</span><span class="micro" id="noteTotal">00</span></div>
+    <h4>NOTES ARCHIVE</h4>
+    <div id="notesList"></div>
+  </section>
+  <section class="slot">
+    <div class="slot-head"><span class="eyebrow">02 — PHOTO / VIDEO VAULT</span><span class="micro" id="fileTotal">00</span></div>
+    <h4>DRIVE GALLERY</h4>
+    <div id="uploadList"></div>
+    <div id="mediaGrid"></div>
+    <div class="empty" id="dropzone">DROP PHOTOS / VIDEOS HERE<br><span style="font-size:9px;color:#637784">OR USE UPLOAD PHOTO / VIDEO</span></div>
+  </section>
+</div>
 
-            <!-- Settings Tab -->
-            <section id="tab-settings" class="tab-content">
-                <h2>Configuración</h2>
-                <div class="settings-container">
-                    <div class="setting-group">
-                        <h3>Lista IPTV</h3>
-                        <p>URL actual: <span id="current-m3u-url" class="url-display">No configurado</span></p>
-                        <div class="form-group">
-                            <label for="new-m3u-url">Nueva URL o Servicio</label>
-                            <input type="text" id="new-m3u-url" placeholder="lala.tv o https://tudominio.com/lista.m3u">
-                        </div>
-                        <button id="btn-load-m3u" class="btn-save">Cargar Lista IPTV</button>
-                        <button id="btn-load-default" class="btn-secondary">Cargar Lista de Prueba</button>
-                    </div>
-                    
-                    <div class="setting-group">
-                        <h3>Reproductor</h3>
-                        <label class="checkbox-label">
-                            <input type="checkbox" id="autoplay-next" checked>
-                            <span>Reproducir siguiente canal automáticamente</span>
-                        </label>
-                        <label class="checkbox-label">
-                            <input type="checkbox" id="show-epg" checked>
-                            <span>Mostrar guía de programación (EPG)</span>
-                        </label>
-                    </div>
-                    
-                    <div class="setting-group">
-                        <h3>Calidad de Video</h3>
-                        <select id="video-quality">
-                            <option value="auto">Auto</option>
-                            <option value="1080p">1080p</option>
-                            <option value="720p">720p</option>
-                            <option value="480p">480p</option>
-                        </select>
-                    </div>
-                </div>
-            </section>
-        </main>
+<div class="progress-wrap">
+  <div class="progress-label"><span>DRIVE CAPACITY</span><span id="capacity">— / —</span></div>
+  <div class="progress"><div class="bar" id="bar"></div></div>
+</div>
+</main>
+<footer class="footer"><span>VAULT SYSTEMS © 2026</span><span>GOOGLE DRIVE STORAGE · V.03</span></footer>
+</div>
 
-        <!-- Video Player Modal -->
-        <div id="player-modal" class="modal hidden">
-            <div class="modal-content">
-                <div class="player-header">
-                    <div class="player-info-left">
-                        <h2 id="player-title">Canal</h2>
-                        <p id="player-channel-info"></p>
-                    </div>
-                    <div class="player-controls-header">
-                        <button class="btn-control" id="btn-fullscreen" title="Pantalla completa">⛶</button>
-                        <button class="btn-control" id="btn-close-player" title="Cerrar">&times;</button>
-                    </div>
-                </div>
-                
-                <div class="player-container">
-                    <video id="video-player" class="video-player" controls autoplay>
-                        <source src="" type="application/x-mpegURL">
-                        Tu navegador no soporta el elemento de video.
-                    </video>
-                </div>
-                
-                <div class="player-footer">
-                    <div class="player-progress">
-                        <div class="progress-bar" id="progress-bar"></div>
-                        <span id="current-time">00:00</span> / <span id="duration">00:00</span>
-                    </div>
-                    <div class="player-controls">
-                        <button class="btn-control" id="btn-play-pause" title="Reproducir/Pausar">▶</button>
-                        <button class="btn-control" id="btn-prev" title="Anterior">⏮</button>
-                        <button class="btn-control" id="btn-next" title="Siguiente">⏭</button>
-                        <button class="btn-control" id="btn-volume" title="Volumen">🔊</button>
-                        <input type="range" id="volume-slider" min="0" max="1" step="0.1" value="1">
-                    </div>
-                </div>
-                
-                <div class="epg-info" id="epg-info">
-                    <h4>Programación</h4>
-                    <div id="epg-content"></div>
-                </div>
-            </div>
-        </div>
+<div class="modal" id="modal"><div class="dialog"><h3 id="modalTitle">CREATE NEW NOTE</h3>
+<label class="eyebrow" for="title">TITLE</label><input class="field" id="title" placeholder="Untitled entry">
+<label class="eyebrow" for="body">CONTENT</label><textarea class="field" id="body" placeholder="Write something private..."></textarea>
+<div class="dialog-actions"><button type="button" class="btn" id="cancel">CANCEL</button><button type="button" class="btn primary" id="save">SAVE ENTRY</button></div></div></div>
 
-        <!-- Loading Spinner -->
-        <div id="loading-spinner" class="spinner hidden">
-            <div class="spinner-content">
-                <div class="spinner-circle"></div>
-                <p id="loading-text">Cargando canales...</p>
-            </div>
-        </div>
-
-        <!-- Toast Notifications -->
-        <div id="toast" class="toast hidden"></div>
+<div class="modal" id="player"><div class="dialog wide">
+  <div class="player-head">
+    <div><h3 style="margin:0 0 6px" id="playerTitle">FILE</h3><div class="hint" id="playerMeta"></div></div>
+    <div class="dialog-actions" style="justify-content:flex-end">
+      <button type="button" class="btn" id="pDownload">↓ DOWNLOAD</button>
+      <button type="button" class="btn" id="pDelete" style="color:var(--pink);border-color:#3a2430">DELETE</button>
+      <button type="button" class="btn primary" id="pClose">CLOSE</button>
     </div>
+  </div>
+  <div class="player-body">
+    <div class="spin" id="pspin"></div>
+    <img id="pimg" class="hidden" alt="vault media">
+    <video id="pvid" class="hidden" controls playsinline></video>
+    <a id="pnofile" class="hidden" download>↓ SAVE THIS FILE</a>
+  </div>
+</div></div>
 
-    <script src="js/auth.js"></script>
-    <script src="js/iptv-player.js"></script>
-    <script src="js/app.js"></script>
-</body>
-</html>
+<div class="modal" id="settings"><div class="dialog wide">
+  <h3>GOOGLE DRIVE SETUP</h3>
+  <label class="eyebrow" for="clientId">OAUTH CLIENT ID (GOOGLE CLOUD)</label>
+  <input class="field" id="clientId" placeholder="1234567890-xxxxxxxx.apps.googleusercontent.com">
+  <div class="dialog-actions">
+    <button type="button" class="btn primary" id="saveCfg">SAVE CONFIG</button>
+    <button type="button" class="btn" id="connectBtn">CONNECT &amp; SYNC</button>
+    <button type="button" class="btn" id="openFolder" style="border-color:#276b78;color:var(--cyan)">⇱ OPEN VAULT FOLDER</button>
+    <button type="button" class="btn" id="closeCfg">CLOSE</button>
+  </div>
+  <details class="guide">
+    <summary>¿CÓMO OBTENGO MI CLIENT ID? — GUÍA PASO A PASO</summary>
+    <ol>
+      <li>Entra en <a href="https://console.cloud.google.com/" target="_blank" rel="noopener">console.cloud.google.com</a> y crea un proyecto (ej. "VAULT").</li>
+      <li>En "APIs &amp; Services → Library", busca <b>Google Drive API</b> y pulsa <b>Enable</b>.</li>
+      <li>En "APIs &amp; Services → OAuth consent screen": tipo <b>External</b>, pon un nombre de app, y en <b>Test users</b> añade tu correo de Gmail.</li>
+      <li>En "APIs &amp; Services → Credentials → Create credentials → OAuth client ID": tipo <b>Web application</b>.</li>
+      <li>En <b>Authorized JavaScript origins</b> añade la URL EXACTA donde está alojada esta app (scheme + dominio, sin barra final). Para GitHub Pages suele ser <i>https://TUSUARIO.github.io</i>.</li>
+      <li>Copia el <b>Client ID</b> que aparece (termina en <i>apps.googleusercontent.com</i>), pégalo arriba y pulsa SAVE CONFIG.</li>
+      <li>Pulsa <b>CONNECT &amp; SYNC</b>. Google pedirá permiso (modo testing): acepta y listo.</li>
+    </ol>
+  </details>
+  <p class="hint" style="margin-top:12px">SCOPE: drive.file — la app solo accede a su propia carpeta "VAULT" y a los archivos que ella misma crea. Tus notas se quedan en este navegador.</p>
+</div></div>
+
+<input type="file" id="fileInput" multiple accept="image/*,video/*" class="hidden">
+<div id="toasts"></div>
+
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script defer src="js/vault.js"></script>
+</body></html>
