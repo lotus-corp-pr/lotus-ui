@@ -20,7 +20,7 @@ let media=store.get('vault-drive-cache',[]);
 let cfg=store.get('vault-cfg',{});
 let quota=store.get('vault-quota',null);
 let folderId=store.raw('vault-folder')||null;
-let token=null,tokenExp=0,tokenClient=null,gisReady=null,pendingTok=null,tokenLock=Promise.resolve();
+let token=store.raw('vault-token')||null,tokenExp=+store.raw('vault-token-exp')||0,tokenClient=null,gisReady=null,pendingTok=null,tokenLock=Promise.resolve();
 let thumbCache=new Map(),playUrl=null,currentPlay=null;
 let seq=[],patPending=null,patMode=store.raw('vault-pattern')?'enter':'set';
 const hasToken=()=>!!(token&&Date.now()<tokenExp-60000);
@@ -64,15 +64,17 @@ function loadGis(){if(!gisReady)gisReady=new Promise((res,rej)=>{
   document.head.appendChild(s);
   setTimeout(()=>{if(!(window.google&&google.accounts&&google.accounts.oauth2))rej(new Error('GIS_TIMEOUT'))},9000)});
   return gisReady}
+function setToken(t,exp){token=t;tokenExp=exp;store.setRaw('vault-token',t);store.setRaw('vault-token-exp',String(exp))}
+function clearToken(){token=null;tokenExp=0;store.setRaw('vault-token','');store.setRaw('vault-token-exp','')}
 async function requestToken(){
   if(!cfg.clientId)throw new Error('NO_CLIENT_ID');
   await loadGis();
   if(!tokenClient){tokenClient=google.accounts.oauth2.initTokenClient({
     client_id:cfg.clientId,scope:SCOPE,
     callback:r=>{const p=pendingTok;pendingTok=null;
-      if(r&&r.access_token){token=r.access_token;tokenExp=Date.now()+((r.expires_in||3600)-60)*1000;p&&p.resolve(token)}
-      else{token=null;p&&p.reject(new Error('NO_TOKEN'))}},
-    error_callback:()=>{const p=pendingTok;pendingTok=null;token=null;p&&p.reject(new Error('TOKEN_FAILED'))}})}
+      if(r&&r.access_token){setToken(r.access_token,Date.now()+((r.expires_in||3600)-60)*1000);p&&p.resolve(token)}
+      else{clearToken();p&&p.reject(new Error('NO_TOKEN'))}},
+    error_callback:()=>{const p=pendingTok;pendingTok=null;clearToken();p&&p.reject(new Error('TOKEN_FAILED'))}})}
   return new Promise((resolve,reject)=>{pendingTok={resolve,reject};
     try{tokenClient.requestAccessToken({prompt:''})}catch(e){pendingTok=null;reject(e)}})}
 function ensureToken(){
@@ -83,7 +85,7 @@ function ensureToken(){
 async function api(path,opts={},retry=true){
   const t=await ensureToken();
   const r=await fetch(path.startsWith('http')?path:API+path,{...opts,headers:{...(opts.headers||{}),Authorization:'Bearer '+t}});
-  if(r.status===401&&retry){token=null;return api(path,opts,false)}
+  if(r.status===401&&retry){clearToken();return api(path,opts,false)}
   return r}
 
 /* ── drive ── */
