@@ -148,7 +148,7 @@ export default {
     try {
       if (!key || !await validKey(key, env)) return json({ error: 'CLOUD_KEY' }, 401, CORS);
       const path = url.pathname.replace(/\/+$/, '');
-      if (request.method === 'GET' && path === '/ping') return json({ ok: true }, 200, CORS);
+      if (request.method === 'GET' && path === '/ping') return json({ ok: true, folder: 'https://drive.google.com/drive/folders/' + env.FOLDER_ID }, 200, CORS);
       if (request.method === 'GET' && path === '/list') return await listFiles(env, CORS);
       if (request.method === 'GET' && path.startsWith('/file/')) return await streamFile(path.slice(6), request, env, CORS);
       if (request.method === 'GET' && path.startsWith('/thumb/')) return await streamThumb(path.slice(7), env, CORS);

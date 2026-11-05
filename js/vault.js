@@ -134,7 +134,7 @@ async function connectDrive(interactive){
   if(cloud.url){
     if(!cloudKey){if(interactive)toast('Desbloquea con tu patrón primero','err');return false}
     setDriveStatus('CONNECTING');
-    try{await cloudSync();setDriveStatus('CLOUD');renderAll();if(interactive)toast('Modo nube conectado — '+media.length+' elemento(s)','ok');return true}
+    try{await cloudSync();try{const p=await fetch(cloud.url+'/ping',{headers:{'X-Vault-Key':cloudKey}});const pj=await p.json();if(pj&&pj.folder&&pj.folder!==cloud.folder){cloud.folder=pj.folder;store.set('vault-cloud',cloud)}}catch(e){}}setDriveStatus('CLOUD');renderAll();if(interactive)toast('Modo nube conectado — '+media.length+' elemento(s)','ok');return true}
     catch(e){setDriveStatus('OFFLINE');
       if((e&&e.message)==='CLOUD_KEY'){lockNow();toast('PATRÓN INCORRECTO','err');return false}
       if(interactive)toast('Nube: '+errText(e),'err');return false}}
@@ -153,7 +153,7 @@ function setDriveStatus(s){const st=STATUS[s]||STATUS.OFFLINE;$('statusTxt').tex
 
 /* ── uploads (sequential queue) ── */
 const uploadQueue=[];let pumping=false;
-function enqueueUpload(file){uploadQueue.push(file);if(!pumping)pumpUploads()}
+function enqueueUpload(file){if(cloudOn()){if(cloud.folder)window.open(cloud.folder,'_blank');toast('Google bloquea subidas desde el servidor — sube el archivo directo en la carpeta VAULT de Drive','err');return}uploadQueue.push(file);if(!pumping)pumpUploads()}
 async function pumpUploads(){pumping=true;
   while(uploadQueue.length){try{await uploadFile(uploadQueue.shift())}catch(e){}}
   pumping=false}
