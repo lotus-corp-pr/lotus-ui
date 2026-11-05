@@ -4,6 +4,7 @@ const $=id=>document.getElementById(id);
 const SCOPE='https://www.googleapis.com/auth/drive.file';
 const FIELDS='id,name,mimeType,size,createdTime,thumbnailLink';
 const API='https://www.googleapis.com/drive/v3/';
+const UPLOAD='https://www.googleapis.com/upload/drive/v3/';
 const SYMBOLS=['⌬','⌭','⏣','◈','⬢','⬡','⧉','▣','⊞','⌗','✥','⌘'];
 
 /* ── safe storage ── */
@@ -32,7 +33,7 @@ const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'
 const hash=s=>{let h=5381;for(const c of s)h=(h*33+c.charCodeAt(0))>>>0;return String(h)};
 function fmtSize(b){b=+b||0;if(!b)return '0 B';if(b<1024)return b+' B';if(b<1048576)return (b/1024).toFixed(1)+' KB';if(b<1073741824)return (b/1048576).toFixed(1)+' MB';return (b/1073741824).toFixed(2)+' GB'}
 const ERRTEXT={NO_CLIENT_ID:'falta el Client ID (⚙ SETUP)',TOKEN_FAILED:'Google rechazó el inicio de sesión — revisa Client ID y origen autorizado',GIS_BLOCKED:'script de Google bloqueado',GIS_TIMEOUT:'tiempo de espera agotado con Google',NO_TOKEN:'Google no devolvió token',GIS_LOAD:'no se pudo cargar el módulo de Google'};
-const errText=e=>ERRTEXT[(e&&e.message)||'']||((e&&e.message)||'error desconocido');
+const errText=e=>(e&&e.name==='TypeError')?'error de red — revisa tu conexión':ERRTEXT[(e&&e.message)||'']||((e&&e.message)||'error desconocido');
 
 /* ── toasts ── */
 function toast(msg,type){const t=document.createElement('div');t.className='toast '+(type||'info');t.textContent=msg;$('toasts').appendChild(t);
@@ -144,7 +145,7 @@ async function uploadFile(file){
   try{
     await ensureFolder();
     const t=await ensureToken();
-    const init=await fetch(API+'upload/files?uploadType=resumable&fields='+FIELDS,{
+    const init=await fetch(UPLOAD+'files?uploadType=resumable&fields='+FIELDS,{
       method:'POST',
       headers:{'Authorization':'Bearer '+t,'Content-Type':'application/json; charset=UTF-8'},
       body:JSON.stringify({name:file.name,parents:[folderId]})});
