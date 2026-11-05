@@ -117,7 +117,10 @@ async function syncDrive(){
 async function cloudSync(){
   const r=await fetch(cloud.url+'/list',{headers:{'X-Vault-Key':cloudKey}});
   if(r.status===401)throw new Error('CLOUD_KEY');
-  if(!r.ok)throw new Error('CLOUD '+r.status);
+  if(!r.ok){
+    let msg='CLOUD '+r.status;
+    try{const j=await r.json();if(j&&j.error)msg=String(j.error)+' ('+r.status+')'}catch(e){}
+    throw new Error(msg)}
   media=(await r.json())||[];store.set('vault-drive-cache',media);renderAll()}
 async function updateQuota(){try{
   const r=await api('about?fields=storageQuota');if(!r.ok)return;

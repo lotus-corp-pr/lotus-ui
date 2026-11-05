@@ -1,6 +1,6 @@
 /* VAULT Cloud Worker — vinculado SOLO a tu carpeta VAULT de Google Drive.
- * Despliegalo gratis en Cloudflare Workers y configura 3 secretos:
- *   SA_JSON    = contenido completo de la clave JSON de tu cuenta de servicio
+ * Secretos requeridos (Cloudflare → Settings → Variables and Secrets):
+ *   SA_JSON    = contenido completo de la clave JSON de la cuenta de servicio
  *   FOLDER_ID  = ID de tu carpeta VAULT en Drive
  *   VAULT_KEY  = tu Cloud Key (generada en la app: ⚙ SETUP → COPY CLOUD KEY)
  */
@@ -21,12 +21,16 @@ async function importKey(pem) {
 
 async function saToken(env) {
   if (tokenCache.token && Date.now() < tokenCache.exp - 60000) return tokenCache.token;
-  const creds = JSON.parse(env.SA_JSON);
+  let creds;
+  try { creds = JSON.parse(env.SA_JSON); }
+  catch (e) { tokenCache = { token: null, exp: 0 }; throw new Error('SA_JSON invalido: no es un JSON completo — copia el archivo .json entero, de { a }'); }
   const now = Math.floor(Date.now() / 1000);
   const header = b64url(JSON.stringify({ alg: 'RS256', typ: 'JWT' }));
   const claim = b64url(JSON.stringify({ iss: creds.client_email, scope: SCOPE, aud: 'https://oauth2.googleapis.com/token', iat: now, exp: now + 3600 }));
   const data = header + '.' + claim;
-  const key = await importKey(creds.private_key);
+  let key;
+  try { key = await importKey(creds.private_key); }
+  catch (e) { tokenCache = { token: null, exp: 0 }; throw new Error('SA_JSON invalido: la clave privada esta incompleta o mal copiada'); }
   const sig = new Uint8Array(await crypto.subtle.sign('RS256', key, new TextEncoder().encode(data)));
   const jwt = data + '.' + b64urlBytes(sig);
   const r = await fetch('https://oauth2.googleapis.com/token', {
@@ -35,7 +39,7 @@ async function saToken(env) {
     body: 'grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer&assertion=' + encodeURIComponent(jwt)
   });
   const j = await r.json();
-  if (!j.access_token) throw new Error(j.error_description || j.error || 'SA auth failed');
+  if (!j.access_token) { tokenCache = { token: null, exp: 0 }; throw new Error('SA_JSON rechazado por Google: ' + (j.error_description || j.error || 'sin detalle')); }
   tokenCache = { token: j.access_token, exp: Date.now() + (j.expires_in || 3600) * 1000 };
   return tokenCache.token;
 }
@@ -60,13 +64,17 @@ function json(data, status, headers) {
   return new Response(JSON.stringify(data), { status, headers: h });
 }
 
+function folderErr(status) {
+  return 'CARPETA: FOLDER_ID equivocado o carpeta VAULT no compartida con la cuenta de servicio (DRIVE ' + status + ')';
+}
+
 async function listFiles(env, headers) {
   const t = await saToken(env);
   const q = encodeURIComponent("'" + env.FOLDER_ID + "' in parents and trashed=false");
   const r = await fetch(DRIVE + '/files?q=' + q + '&orderBy=createdTime desc&pageSize=200&fields=files(id,name,mimeType,size,createdTime,thumbnailLink)', {
     headers: { Authorization: 'Bearer ' + t }
   });
-  if (!r.ok) throw new Error('DRIVE ' + r.status);
+  if (!r.ok) throw new Error(r.status === 403 || r.status === 404 ? folderErr(r.status) : 'DRIVE ' + r.status);
   const j = await r.json();
   return json(j.files || [], 200, headers);
 }
@@ -89,7 +97,8 @@ async function streamFile(id, request, env, headers) {
 async function streamThumb(id, env, headers) {
   const t = await saToken(env);
   const meta = await fetch(DRIVE + '/files/' + encodeURIComponent(id) + '?fields=thumbnailLink', { headers: { Authorization: 'Bearer ' + t } });
-  const link = (await meta.json()).thumbnailLink;
+  const j = await meta.json();
+  const link = j && j.thumbnailLink;
   if (!link) return json({ error: 'no thumbnail' }, 404, headers);
   const img = await fetch(link, { headers: { Authorization: 'Bearer ' + t } });
   const out = new Headers(headers);
@@ -116,9 +125,9 @@ async function uploadFile(request, env, headers) {
     body: JSON.stringify({ name: file.name, parents: [env.FOLDER_ID] })
   });
   const loc = init.headers.get('Location');
-  if (!init.ok || !loc) throw new Error('INIT ' + init.status);
+  if (!init.ok || !loc) throw new Error(init.status === 403 || init.status === 404 ? folderErr(init.status) : 'SUBIDA INIT ' + init.status);
   const put = await fetch(loc, { method: 'PUT', headers: { 'Content-Type': file.type || 'application/octet-stream' }, body: file });
-  if (!put.ok) throw new Error('UPLOAD ' + put.status);
+  if (!put.ok) throw new Error('SUBIDA ' + put.status);
   const meta = await put.json();
   return json(meta, 200, headers);
 }
