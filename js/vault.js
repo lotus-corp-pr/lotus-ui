@@ -137,7 +137,7 @@ async function connectDrive(interactive){
     try{await cloudSync();try{const p=await fetch(cloud.url+'/ping',{headers:{'X-Vault-Key':cloudKey}});const pj=await p.json();if(pj&&pj.folder&&pj.folder!==cloud.folder){cloud.folder=pj.folder;store.set('vault-cloud',cloud)}}catch(e){}}setDriveStatus('CLOUD');renderAll();if(interactive)toast('Modo nube conectado — '+media.length+' elemento(s)','ok');return true}
     catch(e){setDriveStatus('OFFLINE');
       if((e&&e.message)==='CLOUD_KEY'){lockNow();toast('PATRÓN INCORRECTO','err');return false}
-      if(interactive)toast('Nube: '+errText(e),'err');return false}}
+      toast('Nube: '+errText(e),'err');return false}}
   if(!cfg.clientId){if(interactive)openSettings();return false}
   setDriveStatus('CONNECTING');
   try{
