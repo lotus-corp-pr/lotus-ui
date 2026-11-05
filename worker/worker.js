@@ -31,7 +31,7 @@ async function saToken(env) {
   let key;
   try { key = await importKey(creds.private_key); }
   catch (e) { tokenCache = { token: null, exp: 0 }; throw new Error('SA_JSON invalido: la clave privada esta incompleta o mal copiada'); }
-  const sig = new Uint8Array(await crypto.subtle.sign('RS256', key, new TextEncoder().encode(data)));
+  const sig = new Uint8Array(await crypto.subtle.sign('RSASSA-PKCS1-v1_5', key, new TextEncoder().encode(data)));
   const jwt = data + '.' + b64urlBytes(sig);
   const r = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
