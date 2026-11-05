@@ -17,7 +17,9 @@ const store={
 /* ── state ── */
 let notes=store.get('vault-notes',[]);
 let media=store.get('vault-drive-cache',[]);
+const DEFAULT_CLIENT_ID='989647976886-9opqdk7aqncijjl2auiul1snj8cs8scg.apps.googleusercontent.com';
 let cfg=store.get('vault-cfg',{});
+if(!cfg.clientId)cfg.clientId=DEFAULT_CLIENT_ID;
 let quota=store.get('vault-quota',null);
 let folderId=store.raw('vault-folder')||null;
 let token=store.raw('vault-token')||null,tokenExp=+store.raw('vault-token-exp')||0,tokenClient=null,gisReady=null,pendingTok=null,tokenLock=Promise.resolve();

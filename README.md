@@ -2,6 +2,14 @@
 
 Bóveda privada de fotos y videos con almacenamiento en Google Drive, reproductor integrado y cerradura por patrón.
 
+## Puesta en marcha
+La app ya viene preconfigurada con el OAuth Client ID — solo:
+1. Abre la app: `https://lotus-corp-pr.github.io/lotus-ui/`
+2. Crea tu patrón al primer uso
+3. La app se conecta sola a Google Drive (acepta el permiso la primera vez)
+
+El origen autorizado en Google Cloud debe ser: `https://lotus-corp-pr.github.io`
+
 ## Funciones
 - Cerradura por patrón de símbolos (se configura al primer uso)
 - Subida de fotos/videos a una carpeta "VAULT" en tu Google Drive (subida resumable con barra de progreso, cola secuencial)
@@ -9,16 +17,15 @@ Bóveda privada de fotos y videos con almacenamiento en Google Drive, reproducto
 - Descarga y borrado de archivos; sincronización entre dispositivos
 - Notas privadas guardadas localmente en el navegador
 - Barra de capacidad con tu cuota real de Drive
-- Notificaciones toast, manejo de errores robusto y tokens de Google renovados automáticamente
-
-## Puesta en marcha (GitHub Pages)
-1. En Google Cloud: crea un OAuth Client ID (tipo Web application) — guía paso a paso dentro de la app (⚙ SETUP).
-2. En "Authorized JavaScript origins" agrega: `https://lotus-corp-pr.github.io`
-3. Abre la app, pulsa ⚙ SETUP, pega el Client ID y presiona CONNECT & SYNC.
+- Token persistente: reconexión automática y silenciosa en cada visita
+- Notificaciones toast, manejo de errores robusto
 
 ## Estructura
 - `index.html` — estructura de la interfaz
 - `css/style.css` — estilos
 - `js/vault.js` — lógica (patrón, Google Drive, subidas, reproductor)
 
-> Nota: OAuth de Google no funciona abriendo el archivo con doble click (file://); la app debe servirse por https o localhost.
+## Configuración técnica
+- OAuth Client ID (integrado): `989647976886-9opqdk7aqncijjl2auiul1snj8cs8scg.apps.googleusercontent.com`
+- Scope: `drive.file` — la app solo accede a su carpeta "VAULT" y a los archivos que ella crea
+- Los Client ID de OAuth web son públicos por diseño; la seguridad recae en el origen autorizado y el patrón de la bóveda
