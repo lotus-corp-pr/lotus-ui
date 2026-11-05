@@ -19,15 +19,18 @@ const store={
 let notes=store.get('vault-notes',[]);
 let media=store.get('vault-drive-cache',[]);
 const DEFAULT_CLIENT_ID='989647976886-9opqdk7aqncijjl2auiul1snj8cs8scg.apps.googleusercontent.com';
+const DEFAULT_CLOUD_URL=''; // URL del Worker de Cloudflare — se integra al confirmarla
+const RESET_PASSWORD='3366';
 let cfg=store.get('vault-cfg',{});
 if(!cfg.clientId)cfg.clientId=DEFAULT_CLIENT_ID;
 let cloud=store.get('vault-cloud',{}),cloudKey=null;
+if(!cloud.url&&DEFAULT_CLOUD_URL)cloud.url=DEFAULT_CLOUD_URL;
 const cloudOn=()=>!!(cloud.url&&cloudKey);
 let quota=store.get('vault-quota',null);
 let folderId=store.raw('vault-folder')||null;
 let token=store.raw('vault-token')||null,tokenExp=+store.raw('vault-token-exp')||0,tokenClient=null,gisReady=null,pendingTok=null,tokenLock=Promise.resolve();
 let thumbCache=new Map(),playUrl=null,currentPlay=null;
-let seq=[],patPending=null,patMode=store.raw('vault-pattern')?'enter':'set';
+let seq=[],patPending=null,patMode=(store.raw('vault-pattern')||cloud.url)?'enter':'set';
 const hasToken=()=>!!(token&&Date.now()<tokenExp-60000);
 
 const fmt=n=>String(n).padStart(2,'0');
@@ -56,7 +59,9 @@ function submitPattern(){
     if(h===patPending){store.setRaw('vault-pattern',h);patPending=null;patMode='enter';unlock()}
     else{patPending=null;patMode='set';seq=[];updateLockSub();renderKeys();shakeLock();$('lockMsg').textContent='PATTERNS DID NOT MATCH — TRY AGAIN'}
     return}
-  if(h===store.raw('vault-pattern'))unlock();
+  const stored=store.raw('vault-pattern');
+  if(!stored&&cloud.url){unlock();return}
+  if(stored&&h===stored)unlock();
   else{seq=[];renderKeys();shakeLock();$('lockMsg').textContent='WRONG PATTERN'}}
 async function unlock(){const entered=[...seq];seq=[];patMode='enter';updateLockSub();renderKeys();$('lock').classList.add('hidden');cloudKey=await patternHash(entered);renderAll();connectDrive(false)}
 function lockNow(){seq=[];patMode='enter';updateLockSub();renderKeys();$('lockMsg').textContent='';cloudKey=null;$('lock').classList.remove('hidden')}
@@ -130,7 +135,9 @@ async function connectDrive(interactive){
     if(!cloudKey){if(interactive)toast('Desbloquea con tu patrón primero','err');return false}
     setDriveStatus('CONNECTING');
     try{await cloudSync();setDriveStatus('CLOUD');renderAll();if(interactive)toast('Modo nube conectado — '+media.length+' elemento(s)','ok');return true}
-    catch(e){setDriveStatus('OFFLINE');if(interactive)toast('Nube: '+errText(e),'err');return false}}
+    catch(e){setDriveStatus('OFFLINE');
+      if((e&&e.message)==='CLOUD_KEY'){lockNow();toast('PATRÓN INCORRECTO','err');return false}
+      if(interactive)toast('Nube: '+errText(e),'err');return false}}
   if(!cfg.clientId){if(interactive)openSettings();return false}
   setDriveStatus('CONNECTING');
   try{
@@ -326,7 +333,9 @@ $('keys').innerHTML=SYMBOLS.map(s=>`<button type="button" class="key" data-s="${
 $('keys').onclick=e=>{const b=e.target.closest('.key');if(!b)return;const s=b.dataset.s;const i=seq.indexOf(s);if(i>-1)seq.splice(i,1);else seq.push(s);renderKeys()};
 $('lockClear').onclick=()=>{seq=[];renderKeys();$('lockMsg').textContent=''};
 $('lockEnter').onclick=submitPattern;
-$('lockReset').onclick=()=>{if(confirm('¿Reiniciar tu patrón? Tendrás que crear uno nuevo.')){localStorage.removeItem('vault-pattern');patPending=null;patMode='set';seq=[];updateLockSub();renderKeys()}};
+$('lockReset').onclick=()=>{const p=prompt('CONTRASEÑA PARA RESETEAR EL PATRÓN:');if(p===null)return;
+  if(p!==RESET_PASSWORD){toast('Contraseña incorrecta','err');return}
+  if(confirm('¿Resetear el patrón en este dispositivo?')){localStorage.removeItem('vault-pattern');patPending=null;patMode=cloud.url?'enter':'set';seq=[];updateLockSub();renderKeys();toast('Patrón reseteado en este dispositivo','ok')}};
 
 $('addNote').onclick=showModal;
 $('save').onclick=saveNote;
