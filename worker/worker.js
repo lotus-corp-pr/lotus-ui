@@ -125,9 +125,17 @@ async function uploadFile(request, env, headers) {
     body: JSON.stringify({ name: file.name, parents: [env.FOLDER_ID] })
   });
   const loc = init.headers.get('Location');
-  if (!init.ok || !loc) throw new Error(init.status === 403 || init.status === 404 ? folderErr(init.status) : 'SUBIDA INIT ' + init.status);
+  if (!init.ok || !loc) {
+    let d = '';
+    try { d = (await init.text()).slice(0, 300); } catch (e) {}
+    throw new Error((init.status === 403 || init.status === 404 ? folderErr(init.status) : 'SUBIDA INIT ' + init.status) + (d ? ' — ' + d : ''));
+  }
   const put = await fetch(loc, { method: 'PUT', headers: { 'Content-Type': file.type || 'application/octet-stream' }, body: file });
-  if (!put.ok) throw new Error('SUBIDA ' + put.status);
+  if (!put.ok) {
+    let d = '';
+    try { d = (await put.text()).slice(0, 300); } catch (e) {}
+    throw new Error('SUBIDA ' + put.status + (d ? ' — ' + d : ''));
+  }
   const meta = await put.json();
   return json(meta, 200, headers);
 }
