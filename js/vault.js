@@ -134,7 +134,7 @@ async function connectDrive(interactive){
   if(cloud.url){
     if(!cloudKey){if(interactive)toast('Desbloquea con tu patrón primero','err');return false}
     setDriveStatus('CONNECTING');
-    try{await cloudSync();try{const p=await fetch(cloud.url+'/ping',{headers:{'X-Vault-Key':cloudKey}});const pj=await p.json();if(pj&&pj.folder&&pj.folder!==cloud.folder){cloud.folder=pj.folder;store.set('vault-cloud',cloud)}}catch(e){}}setDriveStatus('CLOUD');renderAll();if(interactive)toast('Modo nube conectado — '+media.length+' elemento(s)','ok');return true}
+    try{await cloudSync();try{const p=await fetch(cloud.url+'/ping',{headers:{'X-Vault-Key':cloudKey}});const pj=await p.json();if(pj&&pj.folder&&pj.folder!==cloud.folder){cloud.folder=pj.folder;store.set('vault-cloud',cloud)}}catch(e){}setDriveStatus('CLOUD');renderAll();if(interactive)toast('Modo nube conectado — '+media.length+' elemento(s)','ok');return true}
     catch(e){setDriveStatus('OFFLINE');
       if((e&&e.message)==='CLOUD_KEY'){lockNow();toast('PATRÓN INCORRECTO','err');return false}
       toast('Nube: '+errText(e),'err');return false}}
@@ -378,5 +378,5 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'){closePlayer();$('se
 
 updateLockSub();renderKeys();renderAll();
 window.addEventListener('error',e=>{try{toast('ERROR JS: '+(e.message||'desconocido'),'err')}catch(x){}});
-try{$('buildTag').textContent='BUILD 11'}catch(e){}
+try{$('buildTag').textContent='BUILD 12'}catch(e){}
 })();
