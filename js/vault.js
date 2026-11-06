@@ -377,4 +377,6 @@ $('openFolder').onclick=()=>{if(folderId)window.open('https://drive.google.com/d
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){closePlayer();$('settings').classList.remove('show');$('modal').classList.remove('show')}});
 
 updateLockSub();renderKeys();renderAll();
+window.addEventListener('error',e=>{try{toast('ERROR JS: '+(e.message||'desconocido'),'err')}catch(x){}});
+try{$('buildTag').textContent='BUILD 11'}catch(e){}
 })();
